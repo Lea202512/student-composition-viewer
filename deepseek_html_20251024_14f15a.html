@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生作文批改展示系统</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: #4a6fa5;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+        }
+        
+        .search-section {
+            padding: 20px;
+            background: #eef2f7;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .search-box {
+            display: flex;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .search-box input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+        
+        .search-box button {
+            padding: 12px 20px;
+            background: #4a6fa5;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .student-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .student-tag {
+            background: #dbe5f1;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .student-tag:hover {
+            background: #c5d5ea;
+        }
+        
+        .student-tag.active {
+            background: #4a6fa5;
+            color: white;
+        }
+        
+        .content-section {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+        
+        .column {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+        }
+        
+        .column h2 {
+            border-bottom: 2px solid #4a6fa5;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            color: #4a6fa5;
+        }
+        
+        .original-content, .revised-content {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-line;
+            line-height: 1.8;
+        }
+        
+        .points-content {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-line;
+        }
+        
+        .highlight {
+            background-color: #fffacd;
+            padding: 2px;
+            border-radius: 3px;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            background: #eef2f7;
+            border-top: 1px solid #ddd;
+        }
+        
+        .navigation button {
+            padding: 10px 20px;
+            background: #4a6fa5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .navigation button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .content-section {
+                flex-direction: column;
+            }
+            
+            .column {
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>学生作文批改展示系统</h1>
+            <p>输入学生姓名，查看作文原稿、修改稿和修改要点</p>
+        </header>
+        
+        <section class="search-section">
+            <div class="search-box">
+                <input type="text" id="student-name" placeholder="请输入学生姓名">
+                <button id="search-btn">搜索</button>
+            </div>
+            <div class="student-list" id="student-list">
+                <!-- 学生姓名标签将通过JavaScript动态生成 -->
+            </div>
+        </section>
+        
+        <section class="content-section" id="content-section">
+            <div class="no-results" id="no-results">
+                请输入学生姓名或点击上方标签查看作文内容
+            </div>
+            
+            <div class="column" id="original-column" style="display: none;">
+                <h2>学生原稿</h2>
+                <div class="original-content" id="original-content"></div>
+            </div>
+            
+            <div class="column" id="revised-column" style="display: none;">
+                <h2>修正与润色后版本</h2>
+                <div class="revised-content" id="revised-content"></div>
+            </div>
+            
+            <div class="column" id="points-column" style="display: none;">
+                <h2>修改要点</h2>
+                <div class="points-content" id="points-content"></div>
+            </div>
+        </section>
+        
+        <section class="navigation" id="navigation" style="display: none;">
+            <button id="prev-btn">上一位学生</button>
+            <span id="current-student"></span>
+            <button id="next-btn">下一位学生</button>
+        </section>
+    </div>
+
+    <script>
+        // 学生作文数据 - 包含32名学生的完整数据
+        const studentsData = {
+            "甘俊熙": {
+                original: `Dear Elsa,\nThree years have passes quickly.And I have changed a lot. I am better\nthan me from three years ago.\n\nIn the past, I used to be so shy that I didn't make a lot of friends.\nAnd I didn't join any activity. However, my best friend told me, "The\nfriend is a important part in our life." So now, I have a lot of friends\nand I become more outgoing. I think the biggest change in my life was\nmaking friends.They encouraged and helped me. They gave me courage.\n\nThese are my chang. Thank you for your care.\n\nBest wishes,\nMax`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! Three years have passed quickly, and I have changed\na lot. I am better than I was three years ago.\n\nIn the past, I used to be so shy that I didn't make many friends, and\nI didn't join any activities. However, my best friend told me,\n"Friends are an important part of our lives." Her words inspired me.\nSo now, I have made a lot of friends and have become more outgoing.\n\nI think the biggest change in my life was learning to make friends.\nThey always encourage and help me, which gives me great courage.\n\nThese are the changes in me. Thank you for your care.\n\nBest wishes,\nMax`,
+                points: `语法修正："have passes" → "have passed"；"I am better than me" →\n"I am better than I was"\n\n表达优化："didn't join any activity" → "didn't join any activities"\n（可数名词复数）\n\n句子结构：将朋友鼓励的话语重新组织，使其更符合英语表达习惯\n\n用词改进："These are my chang" → "These are the changes in me"`
+            },
+            "胡幔君": {
+                original: `Dear Elsa,\nHow I've Changed!\nHow time flies! My life have pass changed a lot in the past three\nyears.\nI used to have big eyes , but now I am weary glosses. I used to be shy\nthat I was afraid to talk with other. My classmates encouraged me and\nmade friends with me, so I'm more humorous and active now. I used to be\npoor at math. With the help of math teacher, I make progress.\nThe biggest change in my life was becoming interested in reading. Last\nyear, my mother gave me an interested in reading. I like it so much that\nI can't put it down reading gives me a lot of knowledge and makes me\nhappy. As a saying goes, "Reading makes a full man."`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! My life has changed a lot in the past three years.\n\nI used to have big eyes, but now I wear glasses. I used to be so shy\nthat I was afraid to talk with others. However, my classmates\nencouraged me, so I'm more humorous and active now. In addition, I\nused to be poor at math, but with the help of my math teacher, I have\nmade progress.\n\nThe biggest change was becoming interested in reading. Last year, my\nmother gave me an interesting book that sparked my interest. I like it\nso much that I can't put it down. Reading gives me a lot of knowledge\nand makes me happy. As the saying goes, "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `主谓一致："My life have pass changed" → "My life has changed"\n\n用词修正："weary glosses" → "wear glasses"；"with other" → "with others"\n\n逻辑衔接：增加"However"和"In addition"等连接词，使文章更连贯\n\n句子重组：将"my mother gave me an interested in\nreading"修正为通顺的表达`
+            },
+            "罗宇涵": {
+                original: `How I've changed!\nDear Elsa,\nThree years have passed quickly And I have changed a lot. I am better\nthan me from three years ago.\nI used to be so shy that I was afraid to talk with others. Because my\nclassmates encouraged me and made friends with me, so I'm more outgoing\nnow. At emulate, I used to be poor at amazing organisms and geography.\nBut with the help of teacher and cheesemite made progress.\nThe biggest change in my Life was becoming interested in reading.\nReading gives me a lot of knowledge and makes me happy. As a saying goes\n"Reading makes a dull man".`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nThree years have passed quickly, and I have changed a lot. I become\nbetter than I was three years ago.\n\nI used to be so shy that I was afraid to talk with others. Because\nmy classmates encouraged me and made friends with me, I am more\noutgoing now. In addition, I used to be poor at biology and geography.\nBut with the help of my teachers and classmates, I have made progress.\n\nThe biggest change in my life was becoming interested in reading.\nReading gives me a lot of knowledge and makes me happy. As the saying\ngoes, "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `语法修正："I am better than me" → "I become better than I was"\n\n连词错误：修正"Because... so..."的重复使用\n\n词汇推测：将"amazing organisms"合理推测为"biology"\n\n谚语修正：将不完整的"Reading makes a dull man"改为标准谚语`
+            },
+            "唐婕": {
+                original: `Dear Elsa,\nThree years have passed quickly And I have changed a lot. used to be\nreally humorous and took up dancing. My mother encouraged me want brave,\nso I'm loves dancing in front of crowds. I used to be so shy and quiet\nthat I not like talk. I used to be poor at physics with the help of\nphysicist teacher , I got good scores exam. The biggest change becoming\ninterested in sports. Last spring , I with my friend together play\nbasketball. I like to it so much that I can't put it down. Sports gives\nme a lot of succeed and make me happy. As a saying goes,"Only You fight\non，make it to the top.`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! Three years have passed quickly, and I have changed a\nlot.\n\nI was a shy and quiet girl who did not like to talk. But now, I have\nbecome more humorous and have taken up dancing. My mother encouraged\nme to be brave, so now I love performing in front of crowds. I also\nused to be poor at physics. However, with the help of my physics\nteacher, I have gotten good scores on exams.\n\nAnother big change is that I have become interested in sports. Last\nspring, my friend and I started playing basketball together. Now, I\nlike it so much that I can't get enough of it. These achievements\nbring me success and happiness. As the saying goes, "Where there is a\nwill, there is a way." I will keep working hard to make it to the top.\n\nBest wishes,\nMax`,
+                points: `句子完整性：补充缺失的主语"I"\n\n动词形式修正："I'm loves dancing" → "I love performing"\n\n时态统一：将过去时和现在时正确区分使用\n\n表达地道性：将"make it to the top"置于合适的语境中`
+            },
+            "王斌": {
+                original: `Dear Eisa,\nHow I've changed!\nMy life has changed a lot in the last three years. Here are some changes\nabout me.\nIn the past three years I used to be thin, but now I'm so heavy that I\ncan't get a good PE saxes. And I used to be afraid of the dark, but now\nI can walk in a dark road with no one. I used to don't do well in math,\nbut now I became interested in math.\nMy friend gave me a interesting book in last summer. And I was enjoyed\nreading in that time. As a saying goes, I really know my books a small\nman!`,
+                revised: `How I've Changed!\n\nDear Elsa, (注：修正了收信人名字)\n\nMy life has changed a lot in the last three years. Here are some\nchanges about me.\n\nI used to be thin, but now I'm so strong and healthy that I get good\nscores in PE. I used to be afraid of the dark, but now I can walk on a\ndark road by myself. I also used to not do well in math, but now I\nhave become interested in it.\n\nThe change started when my friend gave me an interesting book last\nsummer. I enjoyed reading it at that time. As the saying goes, "A good\nbook is a good friend."\n\nBest wishes,\nMax`,
+                points: `收信人修正："Dear Eisa" → "Dear Elsa"\n\n用词优化："so heavy" → "so strong and healthy"（积极意义）\n\n语法修正："I used to don't do" → "I used to not do"\n\n谚语替换：将语义不明的句子替换为贴切的英文谚语`
+            },
+            "王禹翔": {
+                original: `Dear Elsa,\nThree years have passed quickly. And I have changed a lot.\nI used to be really big eyes, but now I'm one of wear glasses students\nin class. I use to be so silent that I was afraid to talk with others.\nBut My classmates usually encouraged me and made friends with me, so\nI'm become really outgoing now. I used to be poor at English. But with\nthe help of English teacher, I make progress.\nThe biggest change in my life was sing becoming interested in reading.\nThis is the most important change because I love it. Sing gives me a lot\nof knowledge and makes me happy. Sing lets me really outgoing. As a\nsaying goes, "Singing makes a happy man."`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nThree years have passed quickly, and I have changed a lot.\n\nI used to have big eyes, but now I'm one of the students who wear\nglasses in class. I used to be so silent that I was afraid to talk with\nothers. But my classmates often encouraged me, so I have become really\noutgoing now. Besides, I used to be poor at English, but with the help\nof my English teacher, I have made progress.\n\nThe biggest change in my life is that I became interested in reading.\nThis is the most important change because I love it. Reading gives me a\nlot of knowledge and makes me happy. It also helps me become more\noutgoing. As the saying goes, "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `搭配修正："used to be really big eyes" → "used to have big eyes"\n\n动词时态："I'm become" → "I have become"\n\n主题统一：将混乱的"sing"和"reading"主题统一为"reading"\n\n细节补充：增加眼镜的描述"who wear glasses"`
+            },
+            "吴婉妮": {
+                original: `How I've changed\nDear Elsa,\nHow time flies! The three years have passed quickly. And I have changed\na lot.\nI used to be short hair, but now I'm love long hair. I used to be so shy\nthat I was not able to make friends quickly or school, but my classmates\nencouraged me and made friends with me, so I'm more anxious and makes me\nfriends quick. I used to be part at Chinese now, with the help of\nChinese teacher, I make progress.\nThe biggest change in my life was becoming interested in reading. Last\nsummer, my friend gave me an interesting look. I like it so much that I\ndon't put it down.\nReading gives me a lot of knowledge and makes me happy. As a saying\ngoes: "Reading makes a full man.`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! Three years have passed quickly, and I have changed a\nlot.\n\nI used to have short hair, but now I have long hair. I used to be so\nshy that I was not able to make friends quickly at school, but my\nclassmates encouraged me, so I'm more outgoing and can make friends\nquickly now. I also used to be poor at Chinese, but with the help of my\nChinese teacher, I have made progress.\n\nThe biggest change was becoming interested in reading. Last summer, my\nfriend gave me an interesting book. I liked it so much that I couldn't\nput it down. Reading gives me a lot of knowledge and makes me happy. As\nthe saying goes: "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `搭配错误："used to be short hair" → "used to have short hair"\n\n用词修正："anxious" → "outgoing"（消除负面含义）\n\n拼写修正："look" → "book"\n\n句子结构：将"makes me friends quick"重组为正确表达`
+            },
+            "颜承俊": {
+                original: `Dear Lisa,\nThree years have passed quickly. And I have changed a bit.\nI used to be really shy. But I had a good friend. He encouraged me and\nmade friends with me. So I'm rare anyway as now. And math teacher\nhelped me improve my math score, now my math score is good.\nThe most important change in my life was making more good friend. I\nthink good friends are so important. Because friends can change your\npersonalities. But bad friends can make your bad. Having good friends\ncan make you to the top.`,
+                revised: `How I've Changed!\n\nDear Lisa,\n\nThree years have passed quickly, and I have changed a lot.\n\nI used to be really shy. Fortunately, I had a good friend who\nencouraged me. Now, I am more outgoing and active. Also, with the\nencouragement of my math teacher, my math score has improved a lot.\n\nThe most important change was making more good friends. I think good\nfriends are very important because they can positively influence your\npersonality. On the other hand, bad friends can have a negative impact.\nHaving good friends can help you reach the top.\n\nBest wishes,\nMax`,
+                points: `表达优化："changed a bit" → "changed a lot"（体现积极变化）\n\n句子重组：将含义模糊的" I'm rare anyway as now"合理重述\n\n逻辑深化：将朋友影响的简单论述扩展为更全面的分析\n\n用词改进："make you to the top" → "help you reach the top"`
+            },
+            "尹银慧": {
+                original: `How I've changed!\nDear Elsa,\nHow time flies! My life has dropped a bit in the past three years.\nI used to be short hair but now I has a black long hair. And I used to\nbe short but now I'm tall. I used to be so outgoing that I sit as hard\nto believe that not apart but not I'm serious. I used to be poor at\nEnglish. With the help of English teacher, I make progress.\nThe biggest change in my life was becoming English make progress.\nBecause I discovered the listening tone something interesting is the\nsecret to language learning. So that I get much writing practice. As a\nsaying goes, "Learning is a lifelong journey!"`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! Many aspects of my life have changed in the past three\nyears.\n\nI used to have short hair, but now I have long black hair. I also used\nto be short, but now I'm tall. In terms of personality, I used to be\nvery outgoing, but now I have become more serious and mature. I used to\nbe poor at English. However, with the help of my English teacher, I\nhave made great progress.\n\nThe biggest change is the significant progress I have made in English.\nThis is because I discovered that listening to something interesting is\none of the secrets to language learning. I also get a lot of writing\npractice. As the saying goes, "Learning is a lifelong journey!" I will\ncontinue to work hard on this journey.\n\nBest wishes,\nMax`,
+                points: `表达优化："My life has dropped" → "Many aspects have changed"\n\n搭配修正："used to be short hair" → "used to have short hair"\n\n逻辑分类：增加"Physically"和"In terms of personality"等分类词\n\n句子重组：将英语进步的原因描述得更具体清晰`
+            },
+            "张炫霞": {
+                original: `Dear Elsa,\nHow time flies! My life has changed a lot in the past three years.\nI used to be short, but now I'm tall. I used to have short hair, but\nnow I have long hair.\nI'm near glasses now. I used to be really shy and quiet. My parents and\nteachers encouraged me and made friends with me, so I'm more outgoing\nnow. I'm active and humorous now.\nI used to be poor at English. I didn't use to reading aloud, but now\nI'm imprune speaking skills. I'm brave now. And with the help of\nEnglish teacher, I make progress.\nThe biggest in my life was becoming interested in reading. Reading gives\nme a lot of knowledge stand makes me happy. As a saying goes, "Reading\nmakes a full man"`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! My life has changed a lot in the past three years.\n\nPhysically, I used to be short, but now I'm tall. I used to have short\nhair, but now I have long hair. I also wear glasses now.In terms of\npersonality, I used to be really shy and quiet. My parents and\nteachers encouraged me, so I'm more outgoing, active, and humorous\nnow.Academically, I used to be poor at English. I didn't use to read\naloud, but now I have improved my speaking skills and become braver.\nWith the help of my English teacher, I have made great progress.\n\nThe biggest change in my life was becoming interested in reading.\nReading gives me a lot of knowledge and makes me happy. As the saying\ngoes, "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `结构优化：使用"Physically"、"In terms of\npersonality"、"Academically"分类\n\n语法修正："didn't use to reading" → "didn't use to read"\n\n用词改进："imprune" → "improved"\n\n拼写修正："stand" → "and"`
+            },
+            "宾嘉茂": {
+                original: `Dear Elsa,\nHow time lies! My life has changed a lot in the past three years.\nI'm used to be short, but now I'm tall. My friends encouraged me.\nSo I'm more outgoing now. I used to be poor at English, who with the\nhelp of English teacher - I make progress. I used to do well in math.\nBut now I be poor at math.\nThe biggest change in my life was becoming reading English book. Last\nsummer, my aunt gave me an interesting English book. First, I don't like\nthis English book, But I will get good scores, needed this book.\nAs a saying goes: Reading makes a full man!\nsee you again!`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! My life has changed a lot in the past three years.\n\nI used to be short, but now I'm tall. My friends encouraged me, so I'm\nmore outgoing now. I used to be poor at English, but with the help of\nmy English teacher, I have made progress. Interestingly, I used to do\nwell in math, but now I am poor at it.\n\nThe biggest change was becoming interested in reading English books.\nLast summer, my aunt gave me an interesting one. At first, I didn't\nlike it, but I knew I needed it to get good scores.\n\nAs the saying goes: "Reading makes a full man!"\n\nLooking forward to seeing you again!\n\nBest wishes,\nMax`,
+                points: `拼写修正："How time lies" → "How time flies"\n\n语法修正："I'm used to be" → "I used to be"；"I be poor" → "I am poor"\n\n逻辑转折：增加"Interestingly"连接数学成绩的变化\n\n表达优化：将阅读兴趣的变化描述得更自然`
+            },
+            "楚钡妮": {
+                original: `Dear Elsa,\nI was a great man who has changed a lot in the past three years.\nI used to be tall, so I'm one of the tallest students in class now. I used\nto have short and hard but now I have long hair. I used to be shy so\nI was a great man who has changed my classmates even more than I had.\nIt is so difficult.\nThe biggest change in my life was becoming interested in math. Last\nyear, my friend\ngave me an interesting book. It is about math. I can't put it down. So I love\nin math. Learning math, use me make progress. As a saying goes "Learning\nmakes\nprogress."`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nI have changed a lot in the past three years.\n\nI used to be tall, and now I'm one of the tallest students in class. I\nused to have short and straight hair, but now I have long hair. I used\nto be shy, but my classmates have helped me change a lot.\n\nThe biggest change was becoming interested in math. Last year, my\nfriend gave me an interesting math book. I can't put it down, so I now\nlove math. Learning math helps me make progress. As the saying goes,\n"Learning leads to progress."\n\nBest wishes,\nMax`,
+                points: `逻辑重组：将混乱的开头句重写为清晰的主题句\n\n词汇推测："short and hard" → "short and straight"\n\n表达修正："use me make progress" → "helps me make progress"\n\n谚语完善："Learning makes progress" → "Learning leads to progress"`
+            },
+            "戈文君": {
+                original: `How I've Changed\nDear Elsa,\nHow time flies three years have passed quickly And I have changed a lot.\nI used to be short, but know I'm one of the tallest student in Laszlas.\nI used to be so shy that I was afraid to talk with others. My classmates\nencouraged me and made friends with me, so I'm more outgoing now. The\nbiggest change in my life was begging interested in reading. Reading\ngives me a lot of knowledge and makes me happy. As a saying goes,\n"Reading makes a full man"`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! Three years have passed quickly, and I have changed a\nlot. I used to be short, but now I'm one of the tallest students in my\nclass. I used to be so shy that I was afraid to talk with others. My\nclassmates encouraged me, so I'm more outgoing now.\n\nThe biggest change was becoming interested in reading. Reading gives\nme a lot of knowledge and makes me happy. As the saying goes, "Reading\nmakes a full man."\n\nBest wishes,\nMax`,
+                points: `标点修正：在"How time flies"后增加逗号\n\n拼写修正："know" → "now"；"Laszlas" → "my class"\n\n用词改进："begging" → "becoming"\n\n格式规范：修正书信格式和标点使用`
+            },
+            "郭依璇": {
+                original: `Dear Elsa,\nHow time first my life has changed a lot in the past three years.\nI used to be short but now I'm tall. My friends encouraged me, so I'm\nmore outgoing now. I used to be poor at math, with the help of math\nteacher. I make progress. I used to do well in English, but now I be\npoor at English.\nThe biggest change in my life was becoming reading English book. Last\nsummer, my aunt gave me an interesting English book. First, I don't\nlike this English book. But, I will get good scores. I read these books.\nThen I were ready to move the interesting in this book. Reading gives\nme a lot of knowledge and makes me happy. As a saying goes, "Reading\nmakes a full man!"`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! My life has changed a lot in the past three years.\n\nI used to be short, but now I'm tall. My friends encouraged me, so I'm\nmore outgoing now. I used to be poor at math, but with the help of my\nmath teacher, I have made progress. On the other hand, I used to do\nwell in English, but now I am poor at it.\n\nThe biggest change was becoming interested in reading English books.\nLast summer, my aunt gave me an interesting one. At first, I didn't\nlike it, but I knew I needed to read it to get good scores. Gradually,\nI discovered the interesting parts of the book. Reading gives me a lot\nof knowledge and makes me happy. As the saying goes, "Reading makes a\nfull man!"\n\nBest wishes,\nMax`,
+                points: `拼写修正："How time first" → "How time flies"\n\n语法修正："I be poor" → "I am poor"\n\n逻辑衔接：增加"On the other hand"连接不同科目变化\n\n细节扩展：将阅读兴趣的变化过程描述得更完整`
+            },
+            "胡玮杰": {
+                original: `Dear Elsa,`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow I've Changed!\n\nHow time flies! I have changed a lot in the past three years.\n\nI used to be very quiet in class, but now I am active. I also used to\nbe poor at sports, but after practicing with my friends, I have become\nmuch better.\n\nThe biggest change is my attitude towards learning. I now understand\nthat hard work is the key to improvement.\n\nBest wishes,\nMax`,
+                points: `内容补充：由于原文几乎空白，补充了完整的作文内容\n\n结构构建：建立了清晰的性格、体育、学习态度变化框架\n\n主题突出：强调学习态度的转变是最重要的变化`
+            },
+            "刘佳凝": {
+                original: `Dear Elsa,\nMy life has dangled a lot in the last few years. Therefore,\nI used to be so shy that I was afraid to talk with others. My classmates on campus\nme and made friends with me so I'm more grateful now.\nEven though we're in difficult times once, we still need to keep type alive.`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nMy life has changed a lot in the last few years.\n\nI used to be so shy that I was afraid to talk with others. My\nclassmates encouraged me and made friends with me, so I'm more\noutgoing now.\nI believe that even in difficult times, we still need to keep our\nhopes alive.\n\nBest wishes,\nMax`,
+                points: `用词修正："dangled" → "changed"；"on campus me" → "encouraged me"\n\n表达优化："more grateful" → "more outgoing"（更符合语境）\n\n哲理句子：保留并修正了学生的哲理思考，使其更通顺`
+            },
+            "刘俊廷": {
+                original: `Dear Elsa:\nThree years have passed purely And I have changed a lot.\nI used to be silent, but now I'm one of the humorous students in class.\nI used to be really shy so that I was afraid of speak My classmates\nencouraged me and made friends with no, so I'm more wrigging now.\nThe biggest change in my life was becoming interested in reading last\nsummer. My friend gave me an interesting look like it so much that I\ncan't put it down. Rewiring gives me a lot of knowledge and makes me\nhappy. As a saying goes "Reading makes a full man."`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nThree years have passed quickly, and I have changed a lot.\n\nI used to be silent, but now I'm one of the most humorous students in\nclass. I used to be really shy so that I was afraid of speaking.\nHowever, my classmates encouraged me, so I'm more outgoing now.\n\nThe biggest change was becoming interested in reading. Last summer, my\nfriend gave me an interesting book. I like it so much that I can't put\nit down. Reading gives me a lot of knowledge and makes me happy. As the\nsaying goes, "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `拼写修正："purely" → "quickly"；"wrigging" → "outgoing"\n\n语法修正："afraid of speak" → "afraid of speaking"\n\n用词改进："look" → "book"；"Rewiring" → "Reading"\n\n衔接优化：增加"However"使语气转折更自然`
+            },
+            "刘烨萱": {
+                original: `Dear Elsa,\nHow I've changed!\nMy life has clamp a lot in the make progress.\nI think we to do well in math, but my with my the help of with teacher,\nI have\nprogress. I used to be silent, but become interested in with my the\nhelper with special\nfriends, I take with others.\nThe biggest change in my life was becoming interested in art class. I\nlike it\nso much that I can't put it down. Art class gives me a lot of helpful\nand makes\nme happy. As a swing goes \"learning is a listening journey\".`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow I've changed!\n\nMy life has changed a lot, and I have made progress.\n\nI used to do well in math, and with the help of my teacher, I have\ncontinued to improve. I used to be silent, but after making some\nspecial friends, I have learned to talk with others.\n\nThe biggest change was becoming interested in art. I like it so much\nthat I can't put it down. It gives me a lot of help and makes me\nhappy. As the saying goes, "Learning is a lifelong journey."\n\nBest wishes,\nMax`,
+                points: `逻辑重组：彻底重组了混乱的句子结构\n\n拼写修正："clamp" → "changed"；"swing" → "saying"\n\n用词优化："helpful" → "help"（词性修正）\n\n谚语替换：将不相关的谚语替换为贴切的"Learning is a lifelong journey"`
+            },
+            "刘志鸿": {
+                original: `Dear Elsa,\nHow I've Changed\nMy life has changed a lot in the last few years. Now, I will tell you\nmy changes.\nI used to be so shy that I was afraid to talk with others. My\nclassmates encouraged me and made friends with me, so I'm more outgoing\nnow. I wish to have longer hair. Now I have short hair and I wear\nglasses. I will get good stories.\nBecause Learning is a lifelong journey.\nThe biggest change in my life was becoming interested in reading. Last\nyear my parents gave me an storybook. I like it so much that I can't\nput it down. As a loving one, "Reading makes a full man."`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nMy life has changed a lot in the last few years.\n\nI used to be so shy that I was afraid to talk with others. My\nclassmates encouraged me, so I'm more outgoing now. I used to wish for\nlonger hair, but now I like my short hair and I wear glasses. I believe\nI will achieve good results in my studies.\n\nThe biggest change was becoming interested in reading. Last year my\nparents gave me a storybook. I like it so much that I can't put it\ndown. As the saying goes, "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `时态统一："I wish to have" → "I used to wish for"\n\n表达推测："get good stories" → "achieve good results"\n\n语法修正："an storybook" → "a storybook"\n\n用词改进："a loving one" → "the saying goes"`
+            },
+            "罗佳莹": {
+                original: `How I've changed!\nDear Elsa,\nHow time flies! Three years have passed quickly. And I have changed a\nlot!\nI used to be so shy that I was afraid to talk with others. But my\nclassmates engaged me and made friends with me. So I'm more I used to\nbe for at chemistry. With the help of chemistry teacher, I make\nprogress.\nThe biggest change in my life was becoming interested in music class. I\nlike it so much that I can't put it down. As a saying goes "music\nmakes full man."`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! Three years have passed quickly, and I have changed a\nlot!\n\nI used to be so shy that I was afraid to talk with others. But my\nclassmates encouraged me, so I'm more outgoing now. I used to be poor\nat chemistry, but with the help of my chemistry teacher, I have made\nprogress.\n\nThe biggest change was becoming interested in music. I like it so much\nthat I can't put it down. As the saying goes, "Music enriches life."\n\nBest wishes,\nMax`,
+                points: `用词修正："engaged" → "encouraged"；"for at" → "poor at"\n\n句子完成：补充了"so I'm more"后面缺失的内容\n\n主题适配：将谚语改为与音乐相关的"Music enriches life"\n\n逻辑连接：用"but"连接化学进步的两句话`
+            },
+            "马紫圆": {
+                original: `Dear Elsa,\nThe yans have passed quickly. And I have dropped a lot.\nI used to be not near places. But I'm near places. I used to have\nstraight hair.\nI used to listen to. Music, but now I enjoy pop music. I used to be so\nshy that I\nwas afraid to talk with others. My classmates encouraged me and made\nfriends with me, so\nI'm mine outgoing now. I used to be poor at physics. But now with the\nhelp of math teacher,\nI make progress.\nThe biggest change in my life was becoming interesting in singing. Last\nyear, my friend\ngave me an interesting music book. I like it so much that I can't put\nit down. Pop music makes\nme happy.`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nThe years have passed quickly. And I have changed a lot.\n\nI used to not wear glasses, but now I do. I used to have straight hair,\nbut now it's curly. I used to listen to classical music, but now I\nenjoy pop music. I used to be shy, but my classmates encouraged me, so\nI'm more outgoing now. I used to be poor at physics, but with the help\nof my teacher, I have made progress.\n\nThe biggest change was becoming interested in singing. Last year, my\nfriend gave me an interesting music book. I like it so much that I\ncan't put it down. Pop music makes me happy.\n\nBest wishes,\nMax`,
+                points: `词汇推测："The yans" → "The years"；"dropped" → "changed"\n\n含义明确："not near places" → "not wear glasses"\n\n细节补充：增加了头发卷曲和音乐类型的对比\n\n表达优化："mine outgoing" → "more outgoing"`
+            },
+            "彭煜翔": {
+                original: `Dear Elsa,\nHow I have changed!\nHow time tries! Three year have passed quickly to find I have changed a\nlot!\nI used to be straight new I'm than taller students in class I used to\nbe shy\nthat I was afraid to talk with other. My classmates encouraged me and\nmade friends\nwith me so I'm more outgoing no now. I used to be pay at English, but\nwith the help\nof math English teacher, I make a lot praying.\nThe biggest change in my life was becoming interested in English.\nEnglish gives me a lot of\nknowledge and matters are happy.`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow I have changed!\n\nHow time flies! Three years have passed quickly, and I have changed a\nlot!\nI used to be short, but now I'm one of the taller students in class. I\nused to be so shy that I was afraid to talk with others. My classmates\nencouraged me, so I'm more outgoing now. I used to be poor at English,\nbut with the help of my English teacher, I have made a lot of progress.\n\nThe biggest change was becoming interested in it. It gives me a lot of\nknowledge and makes me happy.\n\nBest wishes,\nMax`,
+                points: `拼写修正："tries" → "flies"；"pay" → "poor"；"praying" → "progress"\n\n句子重组：将混乱的身高描述句重新组织\n\n指代明确：将最后一段的"English"和"It"指代关系理清\n\n矛盾解决：删除了矛盾的"math English teacher"`
+            },
+            "王文博": {
+                original: `5. 正如一句名言所说：读书使人充实。（As...goes。）\nAs a saying goes ... "Reading makes a full man."\n四、篇章写作\nDear Elsa,\nHow time flies! Three years have passed quickly, And I have changed a\nlot.\nI used to be short, but now I'm one of the tallest students in class. I\nused to be poor at math. I used to be so really shy that I was afraid\nto talk with others. My classmates encouraged me and made friends with\nme, so I'm more outgoing now. Because I used to be poor at math, SO\nwith the help of math teacher, I make progress.\nNow the biggest change in me life was becoming interested in reading.`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! Three years have passed quickly, and I have changed a\nlot.\n\nI used to be short, but now I'm one of the tallest students in class. I\nused to be so shy that I was afraid to talk with others. My classmates\nencouraged me, so I'm more outgoing now. I also used to be poor at\nmath, but with the help of my math teacher, I have made progress.\n\nThe biggest change in my life was becoming interested in reading.\n\nBest wishes,\nMax`,
+                points: `逻辑简洁：删除了重复的数学描述，合并相关句子\n\n语法修正："Because... SO..."连词重复错误\n\n拼写修正："me life" → "my life"\n\n衔接优化：增加"also"连接不同变化`
+            },
+            "熊文静": {
+                original: `Dear Elsa,\nHow I've Changed?\nHow time flies! My life has changed. a lot in the past three years.\nI used to be short, but now I'm one of the tallest students in class.\nAnd I used to be poor at physics with the help of physics teacher. I\nmake progress.\nThe biggest change in my life was becoming interested in thinking\npictures. I like it so much that I can't put it down. Thinking pictures\ngives me a lot of knowledge and makes me happy. As a society goes\n"Working pictures makes a full man."`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow I've Changed!\n\nHow time flies! My life has changed a lot in the past three years.\n\nI used to be short, but now I'm one of the tallest students in class. I\nused to be poor at physics, but with the help of my physics teacher, I\nhave made progress.\n\nThe biggest change was becoming interested in drawing. I like it so\nmuch that I can't put it down. It gives me a lot of knowledge and\nmakes me happy. As the saying goes, "Practice makes perfect."\n\nBest wishes,\nMax`,
+                points: `词汇推测："thinking pictures" → "drawing"\n\n表达修正："a society goes" → "the saying goes"\n\n句子结构：将物理进步的两句话用"but"连接\n\n谚语适配：替换为与绘画相关的"Practice makes perfect"`
+            },
+            "袁欣蕾": {
+                original: `Dear Elsa,\nHow time flies! My life has changed a lot in the past three years.\nFirst, I used to be second shair, but now I'm first shaw in class.\nThen, I used to be so shy that I don't like conversation. But now my\nmother encouraged me so I'm more unhappy. Next, I used to be part at\nEnglish. But now with the help of English teacher, I make progress.\nFinally, the biggest change in my life was learning interested in\nreading. Last birthday, my mother gave me an interesting book. I like\nto so much that I read a book everyday. As a saying yes: "Reading makes\na full man."\nYuan Xiale`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! My life has changed a lot in the past three years.\n\nFirst, I used to have second-longest hair, but now I have the longest\nhair in class. I also used to be so shy that I didn't like\nconversation. But my mother encouraged me, so I'm more confident now.\nMoreover, I used to be poor at English, but with the help of my English\nteacher, I have made progress.\n\nFinally, the biggest change was becoming interested in reading. Last\nbirthday, my mother gave me an interesting book. I like it so much that\nI read every day. As the saying goes: "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `词汇推测："second shair" → "second-longest hair"\n\n用词修正："unhappy" → "confident"（消除负面含义）\n\n衔接优化：使用系列连接词使结构非常清晰\n\n语法修正："learning interested" → "becoming interested"`
+            },
+            "章涵": {
+                original: `Dear Elsa,\nHow time flies May life has changed a lot in the past three years.\nI used to be so shy that I was afraid to talk with others. I used to\nhave long hair, but not I have short hair. I didn't use to read a lot\nof books, but now I made it last. 8 books a year. I used to be afraid\nof insects, but now I likes shaking ants. I used to listen to very\nmusic, but now I enjoy country music.\nThree years have passed quickly. And I have changed a lot!`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! My life has changed a lot in the past three years.\n\nI used to be so shy that I was afraid to talk with others. I used to\nhave long hair, but now I have short hair. I didn't use to read a lot,\nbut now I have read about 8 books this year. I used to be afraid of\ninsects, but now I like studying ants. I used to listen to classical\nmusic, but now I enjoy country music.\n\nThree years have passed quickly, and I have changed a lot!\n\nBest wishes,\nMax`,
+                points: `拼写修正："May life" → "My life"\n\n表达优化："I made it last. 8 books a year" → 通顺的完成时表达\n\n用词改进："shaking ants" → "studying ants"（更合理的兴趣）\n\n细节补充：补充了"very music"中缺失的音乐类型`
+            },
+            "赵心怡": {
+                original: `Dear Elsa,\nThere was a huge house built on the floor of the building. It was built\nin a small, white square and a large brick. The roof was built in a\nsmall, white square and a large brick.\nThe most important image was beautiful, interesting, but, summer, my\nfriend gave me an interesting book. I like it so much that I built out\nit down, reading gives me a lot of knowledge and makes me happy. As a\nsaying goes "Reading makes a full man"`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nI have changed a lot in the past three years. The biggest change is my\nlove for reading.\n\nLast summer, my friend gave me an interesting book. I like it so much\nthat I can't put it down. Reading gives me a lot of knowledge and makes\nme happy. As the saying goes, "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `内容重构：删除了完全离题的房子描述，重写开头\n\n主题明确：围绕阅读兴趣的变化构建全文\n\n表达修正："built out it down" → "can't put it down"\n\n结构建立：建立了清晰的三段式结构`
+            },
+            "刘家林": {
+                original: `（此文件内容为图表模板，未包含有效作文内容。）`,
+                revised: `（此文件内容为图表模板，未包含有效作文内容。）`,
+                points: `（此文件内容为图表模板，未包含有效作文内容。）`
+            },
+            "冯圣依": {
+                original: `Dear Elsa,\nThere was here based thinking that I have changed most. I used to be so\nshy that I was afraid to talk with others. My classmates encouraged me\nand made friends with me. So I'm more outgoing now!.\nThe biggest change in my life was becoming interested in math. Because\nI used to be poor at math. Sometimes he was absent from classes and\nfailed examinations. But now, with the help of math teacher, I made\nprogress. Math gives me a lot of knowledge and makes me happy. Math\nmakes a full man.`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nI have changed a lot in the past three years. I used to be so shy that\nI was afraid to talk with others. My classmates encouraged me and made\nfriends with me, so I'm more outgoing now!\n\nThe biggest change was becoming interested in math. I used to be poor\nat it and sometimes I was absent from class and failed exams. But now,\nwith the help of my math teacher, I have made great progress. Math\ngives me a lot of knowledge and makes me happy. As the saying goes,\n"Learning makes a full man."\n\nBest wishes,\nMax`,
+                points: `逻辑明确：将语义不明的开头句重写为清晰主题\n\n指代修正：删除指代不明的"he"，统一为"I"\n\n句子合并：将不完整的"Because"句与后文合并\n\n结尾升华：将生硬的结尾改为引用贴切谚语`
+            },
+            "周慕晨": {
+                original: `Dear Elsa,\nThere years have passed quickly and I have changed a lot.\nI used to be so short hair, but now I'm one of the longest hair\nstudents in class.\nI used to be so styl that I was afraid tale with others and my\nclassmates encouraged me and made friends with me, so I'm more outgoing\nnow. I used to be poor at English. With the help of English teacher, I\nmake progress.\nThe biggest change in my life was becoming interested in reading last\nsummer, my friend gave me an interesting book. I like it so much that I\ncan't put it down. Reading gives me a lot of knowledge and makes memory\nas a saying goes "Reading makes a full man."`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nThree years have passed quickly, and I have changed a lot.\n\nI used to have short hair, but now I'm one of the students with the\nlongest hair in class.\nI used to be so shy that I was afraid to talk with others. However, my\nclassmates encouraged me, so I'm more outgoing now. I also used to be\npoor at English, but with the help of my English teacher, I have made\nprogress.\n\nThe biggest change was becoming interested in reading. Last summer, my\nfriend gave me an interesting book. I like it so much that I can't put\nit down. Reading gives me a lot of knowledge and makes me happy. As the\nsaying goes, "Reading makes a full man."\n\nBest wishes,\nMax`,
+                points: `拼写修正："There years" → "Three years"\n\n搭配修正："used to be so short hair" → "used to have short hair"\n\n结构优化：将粘连的长句拆分为逻辑清晰的短句\n\n用词改进："makes memory" → "makes me happy"`
+            },
+            "朱诗忆": {
+                original: `Dear Elsa,\nHow time does there years have passed quickly, And I have changed a lot.\nI need to be short hair . I now lay hair . I used to be don't like\nthick about . I now have patience thick about question . I used to be\nseldom less interested in reading . I now reading gives me a lot of\nknowledge and makes me happy.\nThe biggest change in my life was I'm more outgoing now. Last spring my\nclassmates encouraged me and made friends with me.`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow time flies! Three years have passed quickly, and I have changed a\nlot.\n\nI used to have short hair, but now I have long hair. I used to not like\nthinking about questions, but now I am patient when thinking about\nthem. I used to be seldom interested in reading, but now I love it\nbecause it gives me a lot of knowledge and makes me happy.\n\nThe biggest change is that I'm more outgoing now. Last spring, my\nclassmates encouraged me and made friends with me.\n\nBest wishes,\nMax`,
+                points: `逻辑重组：对杂乱的短语进行彻底重组和合理推测\n\n拼写修正："How time does" → "How time flies"\n\n表达规范：将模糊表达转化为清晰的对比句\n\n主题突出：明确了性格变化是最重要的改变`
+            },
+            "赵紫裕": {
+                original: `Dear Elsa,\nHow I've Changed!\nThree years have passed quickly and I have changed a lot.\nI used to have long hair but now I am short hair. At that time I can't\nplay basketball and I was really shy. So I didn't have friends. What's\nmore my mother encouraged me and my classmates make friends. In the end,\nI was more and more outgoing and I have some friends now.\nThe biggest change in my life was becoming interested in drawing. Last\nspring, my best friend give me a picture. It was very beautiful. I very\nlike it. So I decide to learn draw. I believe I can learn well.`,
+                revised: `How I've Changed!\n\nDear Elsa,\n\nHow I've Changed!\n\nThree years have passed quickly, and I have changed a lot.\n\nI used to have long hair, but now I have short hair. In the past, I\ncouldn't play basketball and I was really shy, so I didn't have many\nfriends. However, my mother encouraged me and my classmates made\nfriends with me. As a result, I became more and more outgoing, and I\nhave many friends now.\n\nThe biggest change was becoming interested in drawing. Last spring, my\nbest friend gave me a picture. It was very beautiful, and I like it\nvery much. So I decided to learn how to draw. I believe I can do it\nwell.\n\nBest wishes,\nMax`,
+                points: `语法修正："now I am short hair" → "now I have short hair"\n\n时态统一：将现在时改为过去时以保持一致性\n\n表达地道："I very like it" → "I like it very much"\n\n衔接优化：增加系列连接词使叙述更流畅`
+            }
+        };
+
+        // 获取DOM元素
+        const studentNameInput = document.getElementById('student-name');
+        const searchBtn = document.getElementById('search-btn');
+        const studentList = document.getElementById('student-list');
+        const noResults = document.getElementById('no-results');
+        const originalColumn = document.getElementById('original-column');
+        const revisedColumn = document.getElementById('revised-column');
+        const pointsColumn = document.getElementById('points-column');
+        const originalContent = document.getElementById('original-content');
+        const revisedContent = document.getElementById('revised-content');
+        const pointsContent = document.getElementById('points-content');
+        const navigation = document.getElementById('navigation');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const currentStudent = document.getElementById('current-student');
+
+        // 当前显示的学生索引
+        let currentStudentIndex = -1;
+        const studentNames = Object.keys(studentsData);
+
+        // 初始化学生姓名标签
+        function initStudentTags() {
+            studentList.innerHTML = '';
+            studentNames.forEach(name => {
+                const tag = document.createElement('div');
+                tag.className = 'student-tag';
+                tag.textContent = name;
+                tag.addEventListener('click', () => {
+                    showStudentData(name);
+                });
+                studentList.appendChild(tag);
+            });
+        }
+
+        // 显示学生数据
+        function showStudentData(name) {
+            if (!studentsData[name]) {
+                noResults.style.display = 'block';
+                originalColumn.style.display = 'none';
+                revisedColumn.style.display = 'none';
+                pointsColumn.style.display = 'none';
+                navigation.style.display = 'none';
+                return;
+            }
+
+            noResults.style.display = 'none';
+            originalColumn.style.display = 'block';
+            revisedColumn.style.display = 'block';
+            pointsColumn.style.display = 'block';
+            navigation.style.display = 'flex';
+
+            // 更新内容
+            originalContent.textContent = studentsData[name].original;
+            revisedContent.textContent = studentsData[name].revised;
+            pointsContent.textContent = studentsData[name].points;
+
+            // 更新导航
+            currentStudentIndex = studentNames.indexOf(name);
+            currentStudent.textContent = `当前学生：${name} (${currentStudentIndex + 1}/${studentNames.length})`;
+            
+            // 更新按钮状态
+            prevBtn.disabled = currentStudentIndex <= 0;
+            nextBtn.disabled = currentStudentIndex >= studentNames.length - 1;
+            
+            // 更新标签激活状态
+            document.querySelectorAll('.student-tag').forEach(tag => {
+                tag.classList.remove('active');
+                if (tag.textContent === name) {
+                    tag.classList.add('active');
+                }
+            });
+        }
+
+        // 搜索功能
+        function searchStudent() {
+            const name = studentNameInput.value.trim();
+            if (name) {
+                // 尝试精确匹配
+                if (studentsData[name]) {
+                    showStudentData(name);
+                    return;
+                }
+                
+                // 尝试模糊匹配
+                const matchedName = studentNames.find(studentName => 
+                    studentName.includes(name)
+                );
+                
+                if (matchedName) {
+                    showStudentData(matchedName);
+                    return;
+                }
+                
+                // 没有找到
+                noResults.textContent = `未找到学生"${name}"的作文`;
+                noResults.style.display = 'block';
+                originalColumn.style.display = 'none';
+                revisedColumn.style.display = 'none';
+                pointsColumn.style.display = 'none';
+                navigation.style.display = 'none';
+            }
+        }
+
+        // 导航功能
+        function showPrevStudent() {
+            if (currentStudentIndex > 0) {
+                showStudentData(studentNames[currentStudentIndex - 1]);
+            }
+        }
+
+        function showNextStudent() {
+            if (currentStudentIndex < studentNames.length - 1) {
+                showStudentData(studentNames[currentStudentIndex + 1]);
+            }
+        }
+
+        // 事件监听
+        searchBtn.addEventListener('click', searchStudent);
+        studentNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchStudent();
+            }
+        });
+        prevBtn.addEventListener('click', showPrevStudent);
+        nextBtn.addEventListener('click', showNextStudent);
+
+        // 初始化
+        initStudentTags();
+    </script>
+</body>
+</html>
